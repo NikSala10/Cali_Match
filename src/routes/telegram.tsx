@@ -14,7 +14,7 @@ export const Route = createFileRoute("/telegram")({
   component: TelegramRedirect,
 });
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL;
 const BOT_HANDLE = "calimatch_recommender_bot";
 
 async function sendToTelegram(groupId: string): Promise<void> {
