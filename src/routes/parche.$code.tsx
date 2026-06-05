@@ -18,7 +18,7 @@ import {
 import { generateRecommendationFromBackend } from "@/lib/recommendation";
 
 export const Route = createFileRoute("/parche/$code")({
-  head: () => ({ meta: [{ title: "Parche — CaliGuide" }] }),
+  head: () => ({ meta: [{ title: "Parche — CaliMatch" }] }),
   component: ParcheHub,
 });
 

@@ -11,7 +11,7 @@ import {
 import { saveMemberQuizToSupabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/parche_/$code/quiz")({
-  head: () => ({ meta: [{ title: "Quiz del parche — CaliGuide" }] }),
+  head: () => ({ meta: [{ title: "Quiz del parche — CaliMatch" }] }),
   component: QuizPage,
 });
 

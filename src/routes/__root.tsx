@@ -80,14 +80,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "CaliGuide" },
+      { title: "CaliMatch" },
       {
         name: "description",
         content:
           "Cali Vibe Match helps friends discover and plan outings in Cali by matching group preferences.",
       },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "CaliGuide" },
+      { property: "og:title", content: "CaliMatch" },
       {
         property: "og:description",
         content:
@@ -96,7 +96,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
-      { name: "twitter:title", content: "CaliGuide" },
+      { name: "twitter:title", content: "CaliMatch" },
       {
         name: "twitter:description",
         content:

@@ -14,7 +14,7 @@ import {
 import { supabase, fetchGroupFromSupabase, saveGroupToSupabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/landing")({
-  head: () => ({ meta: [{ title: "CaliGuide — Planes para tu parche en Cali" }] }),
+  head: () => ({ meta: [{ title: "CaliMatch — Planes para tu parche en Cali" }] }),
   component: LandingSwitch,
 });
 
@@ -210,7 +210,7 @@ function PublicLanding() {
           {[
             { n: "01", emoji: "✨", title: "Regístrate", desc: "Crea tu perfil en segundos y cuéntanos qué tipo de salidas disfrutas." },
             { n: "02", emoji: "👥", title: "Arma tu parche", desc: "Invita a tus amigos, cada quien responde qué quiere hacer hoy." },
-            { n: "03", emoji: "🎯", title: "Recibe tu plan", desc: "CaliGuide combina los gustos de todos y recomienda el plan perfecto." },
+            { n: "03", emoji: "🎯", title: "Recibe tu plan", desc: "CaliMatch combina los gustos de todos y recomienda el plan perfecto." },
           ].map((s) => (
             <div key={s.n} className="glass rounded-3xl p-7 relative overflow-hidden">
               <span className="absolute top-4 right-5 text-[3.5rem] font-extrabold text-white/5 leading-none">{s.n}</span>
@@ -228,7 +228,7 @@ function PublicLanding() {
           <div className="text-5xl">🔥</div>
           <h2 className="mt-5 text-3xl md:text-5xl font-extrabold">¿Y tu parche qué?</h2>
           <p className="mt-3 text-muted-foreground max-w-md mx-auto">
-            Únete a miles de caleños que ya arman sus planes con CaliGuide.
+            Únete a miles de caleños que ya arman sus planes con CaliMatch.
           </p>
           <Link to="/registro" className="mt-8 btn-sunset rounded-full px-8 py-4 inline-flex items-center gap-2 text-lg">
             <Sparkles className="h-5 w-5" /> Crear mi parche gratis

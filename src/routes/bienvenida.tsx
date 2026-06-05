@@ -7,7 +7,7 @@ import { Logo } from "@/components/Logo";
 import { getProfile, type Profile } from "@/lib/parche-store";
 
 export const Route = createFileRoute("/bienvenida")({
-  head: () => ({ meta: [{ title: "¡Bienvenido! — CaliGuide" }] }),
+  head: () => ({ meta: [{ title: "¡Bienvenido! — CaliMatch" }] }),
   component: Bienvenida,
 });
 

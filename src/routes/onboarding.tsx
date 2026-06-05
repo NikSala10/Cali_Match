@@ -10,7 +10,7 @@ import {
 import { saveOnboardingToSupabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/onboarding")({
-  head: () => ({ meta: [{ title: "Tu vibra — CaliGuide" }] }),
+  head: () => ({ meta: [{ title: "Tu vibra — CaliMatch" }] }),
   component: Onboarding,
 });
 

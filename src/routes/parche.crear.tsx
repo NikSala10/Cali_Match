@@ -10,7 +10,7 @@ import {
 import { saveGroupToSupabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/parche/crear")({
-  head: () => ({ meta: [{ title: "Arma tu parche — CaliGuide" }] }),
+  head: () => ({ meta: [{ title: "Arma tu parche — CaliMatch" }] }),
   component: CrearParche,
 });
 
@@ -105,14 +105,14 @@ function CrearParche() {
 
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <a
-                  href={`https://wa.me/?text=${encodeURIComponent(`Únete a mi parche en CaliGuide: ${created.link}`)}`}
+                  href={`https://wa.me/?text=${encodeURIComponent(`Únete a mi parche en CaliMatch: ${created.link}`)}`}
                   target="_blank" rel="noreferrer"
                   className="glass rounded-2xl py-3 text-sm inline-flex items-center justify-center gap-2 hover:bg-white/5 transition"
                 >
                   <Share2 className="h-4 w-4" /> WhatsApp
                 </a>
                 <a
-                  href={`https://t.me/share/url?url=${encodeURIComponent(created.link)}&text=${encodeURIComponent("Únete a mi parche en CaliGuide")}`}
+                  href={`https://t.me/share/url?url=${encodeURIComponent(created.link)}&text=${encodeURIComponent("Únete a mi parche en CaliMatch")}`}
                   target="_blank" rel="noreferrer"
                   className="glass rounded-2xl py-3 text-sm inline-flex items-center justify-center gap-2 hover:bg-white/5 transition"
                 >

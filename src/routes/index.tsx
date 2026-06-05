@@ -346,7 +346,7 @@ function Landing() {
             Decidir en grupo, <span className="text-gradient-rumba">sin drama.</span>
           </h2>
           <p className="mt-4 text-muted-foreground max-w-md">
-            CaliGuide combina los gustos de cada integrante para proponer planes donde todos quieren
+            CaliMatch combina los gustos de cada integrante para proponer planes donde todos quieren
             ir. Sin chats interminables, sin "yo voy a donde sea".
           </p>
           <ul className="mt-6 space-y-3 text-sm">

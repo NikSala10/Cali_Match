@@ -8,7 +8,7 @@ import { saveProfile, saveSession } from "@/lib/parche-store";
 import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/registro")({
-  head: () => ({ meta: [{ title: "Crea tu perfil — CaliGuide" }] }),
+  head: () => ({ meta: [{ title: "Crea tu perfil — CaliMatch" }] }),
   component: Registro,
 });
 

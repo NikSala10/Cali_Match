@@ -7,7 +7,7 @@ import { useSearch } from "@tanstack/react-router";
 import { Logo } from "@/components/Logo";
 
 export const Route = createFileRoute("/telegram")({
-  head: () => ({ meta: [{ title: "Abrir Telegram — CaliGuide" }] }),
+  head: () => ({ meta: [{ title: "Abrir Telegram — CaliMatch" }] }),
   validateSearch: (search: Record<string, unknown>) => ({
     group_id: String(search.group_id ?? ""),
   }),

@@ -8,7 +8,7 @@ import { saveProfile, saveSession } from "@/lib/parche-store";
 import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Iniciar sesión — CaliGuide" }] }),
+  head: () => ({ meta: [{ title: "Iniciar sesión — CaliMatch" }] }),
   component: Login,
 });
 
