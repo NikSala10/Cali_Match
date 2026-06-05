@@ -192,7 +192,8 @@ function ParcheHub() {
   };
 
   const copyLink = async () => {
-    await navigator.clipboard.writeText(`${window.location.origin}/parche/${code}`);
+    await navigator.clipboard.writeText(code);
+
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
