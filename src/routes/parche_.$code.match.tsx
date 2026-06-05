@@ -82,16 +82,7 @@ function Match() {
     });
   });
 
-  const localCats = Object.entries(actCounts)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 4)
-    .map(([id, count]) => ({
-      label: actLabels[id]?.label ?? id,
-      emoji: actLabels[id]?.emoji ?? "✨",
-      value: Math.round((count / total) * 100),
-    }));
-
-  const actLabels: Record<string, { label: string; emoji: string }> = {
+   const actLabels: Record<string, { label: string; emoji: string }> = {
     comer: { label: "Comer rico", emoji: "🍴" },
     lugares_bonitos: { label: "Lugares bonitos", emoji: "📸" },
     cultural: { label: "Cultural", emoji: "🎨" },
@@ -101,6 +92,17 @@ function Match() {
     lugares_nuevos: { label: "Descubrir lugares", emoji: "🚶" },
     mercados: { label: "Mercados / tiendas", emoji: "🛍️" },
   };
+
+  const localCats = Object.entries(actCounts)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 4)
+    .map(([id, count]) => ({
+      label: actLabels[id]?.label ?? id,
+      emoji: actLabels[id]?.emoji ?? "✨",
+      value: Math.round((count / total) * 100),
+    }));
+
+ 
 
   const fallbackCats =
     localCats.length > 0
