@@ -57,6 +57,14 @@ function ParcheHub() {
             : (local?.members ?? []),
           status: (remote.status as Parche["status"]) ?? "active",
           finalizedAt: remote.finalized_at as string | undefined,
+          recommendation: remote.recommendation
+          ? {
+              score: remote.recommendation.score,
+              insights: remote.recommendation.insights ?? [],
+              explicacion: remote.recommendation.explicacion ?? "",
+              top_lugares: remote.recommendation.top_lugares ?? [],
+            }
+          : undefined,
           adminAnswered: local?.adminAnswered,
           adminQuiz: local?.adminQuiz,
           memberAnswers: {
@@ -130,21 +138,31 @@ function ParcheHub() {
   };
 
   const finalize = async () => {
-  if (!parche || !isAdmin || !active) return;
+    if (!parche || !isMember || !active) return;
 
-  if (answeredCount < totalMembers) {
-    alert("Aún no todos los integrantes han respondido el quiz");
-    return;
-  }
+    if (answeredCount < totalMembers) {
+      alert("Aún no todos los integrantes han respondido el quiz");
+      return;
+    }
 
-  setFinalizing(true);
+    setFinalizing(true);
 
-  const nowIso = new Date().toISOString();
+    // Re-fetch to check if another member already triggered finalization
+    try {
+      const remote = await fetchGroupFromSupabase(code);
+      if (remote.status === "finalizado" || remote.recommendation) {
+        void navigate({ to: "/parche/$code/match", params: { code } });
+        return;
+      }
+    } catch {
+      // If fetch fails, proceed anyway
+    }
+
+    const nowIso = new Date().toISOString();
     let updated = { ...parche, status: "finalizado" as const, finalizedAt: nowIso };
 
     try {
       const result = await generateRecommendationFromBackend(code);
-      // Store backend result in parche so match page can read it
       updated = {
         ...updated,
         recommendation: {
@@ -155,9 +173,10 @@ function ParcheHub() {
           explicacion: result.explicacion,
         },
       };
+      // Always finalize in Supabase on the happy path
+      await finalizeGroupInSupabase(code);
     } catch (err) {
       console.error("[groups] recommendation error:", err);
-      // Still finalize even if backend fails
       try {
         await finalizeGroupInSupabase(code);
       } catch (e) {
@@ -396,8 +415,8 @@ function ParcheHub() {
             )}
           </section>
 
-          {/* ── Admin: Generate recommendation ─────────────────────────────── */}
-          {isAdmin && active && (
+          {/* ── Generate recommendation (visible to all members) ────────────── */}
+          {isMember && active && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -407,8 +426,9 @@ function ParcheHub() {
               <div className="text-3xl mb-2">🎯</div>
               <h2 className="font-extrabold text-lg">¿Listos para el plan?</h2>
               <p className="text-sm text-muted-foreground mt-1 mb-4">
-                Cuando quieras, genera la recomendación para el parche.
-                {answeredCount === 0 && " Responde al menos tu quiz primero."}
+                {answeredCount < totalMembers
+                  ? `Faltan ${totalMembers - answeredCount} personas por responder el quiz.`
+                  : "¡Todos respondieron! El primero en pulsar genera la recomendación para el parche."}
               </p>
               <button
                 onClick={() => void finalize()}

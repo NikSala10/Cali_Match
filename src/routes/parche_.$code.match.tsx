@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
 import { GlowBg } from "@/components/GlowBg";
 import { Logo } from "@/components/Logo";
-import { getParche, saveParche, type Parche } from "@/lib/parche-store";
-import { finalizeGroupInSupabase } from "@/lib/supabase";
+import { getParche, saveParche, type Parche, type Member, type AdminQuiz } from "@/lib/parche-store";
+import { fetchGroupFromSupabase } from "@/lib/supabase";
 
 type BackendLugar = {
   nombre?: string;
@@ -23,46 +23,108 @@ export const Route = createFileRoute("/parche_/$code/match")({
   component: Match,
 });
 
+const CIRCUMFERENCE = 2 * Math.PI * 68;
+
+function ScoreCircle({ score }: { score: number }) {
+  return (
+    <div className="relative w-48 h-48">
+      <svg className="w-full h-full -rotate-90" viewBox="0 0 160 160">
+        <defs>
+          <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#f97316" />
+            <stop offset="100%" stopColor="#ec4899" />
+          </linearGradient>
+        </defs>
+        {/* Track */}
+        <circle
+          cx="80" cy="80" r="68"
+          fill="none"
+          stroke="oklch(1 0 0 / 0.08)"
+          strokeWidth="14"
+        />
+        {/* Progress arc */}
+        <motion.circle
+          cx="80" cy="80" r="68"
+          fill="none"
+          stroke="url(#scoreGrad)"
+          strokeWidth="14"
+          strokeLinecap="round"
+          strokeDasharray={CIRCUMFERENCE}
+          initial={{ strokeDashoffset: CIRCUMFERENCE }}
+          animate={{ strokeDashoffset: CIRCUMFERENCE * (1 - score / 100) }}
+          transition={{ duration: 1.4, ease: "easeOut" }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-5xl font-extrabold tabular-nums">{score}%</span>
+        <span className="text-xs text-muted-foreground mt-1 tracking-wide">compatibilidad</span>
+      </div>
+    </div>
+  );
+}
+
 function Match() {
   const navigate = useNavigate();
   const { code } = Route.useParams();
 
   const [parche, setParche] = useState<Parche | null>(null);
   const [score, setScore] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const p = getParche(code);
-    setParche(p);
+    (async () => {
+      const local = getParche(code);
+      if (local) setParche(local);
 
-    if (p && (p.status ?? "active") !== "finalizado") {
-      const updated: Parche = {
-        ...p,
-        status: "finalizado",
-        finalizedAt: new Date().toISOString(),
-      };
-
-      saveParche(updated);
-      setParche(updated);
-
-      finalizeGroupInSupabase(code).catch((err) =>
-        console.error("[match] No se pudo finalizar en Supabase:", err)
-      );
-    }
+      try {
+        const remote = await fetchGroupFromSupabase(code);
+        const merged: Parche = {
+          code: remote.id as string,
+          name: remote.name as string,
+          size: remote.size as number,
+          createdBy: remote.created_by as string | null,
+          members: ((remote.members as Member[])?.length > 0
+            ? (remote.members as Member[])
+            : (local?.members ?? [])),
+          status: (remote.status as Parche["status"]) ?? "finalizado",
+          finalizedAt: remote.finalized_at as string | undefined,
+          recommendation: remote.recommendation
+            ? {
+                score: remote.recommendation.score,
+                insights: remote.recommendation.insights ?? [],
+                explicacion: remote.recommendation.explicacion ?? "",
+                top_lugares: remote.recommendation.top_lugares ?? [],
+              }
+            : local?.recommendation,
+          adminAnswered: local?.adminAnswered,
+          adminQuiz: local?.adminQuiz,
+          memberAnswers: {
+            ...(remote.quizAnswers as Record<string, AdminQuiz>),
+            ...(local?.memberAnswers ?? {}),
+          },
+        };
+        saveParche(merged);
+        setParche(merged);
+      } catch {
+        // Already showing local data
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [code]);
 
-  const targetScore =
-    parche?.recommendation?.score ?? computeFallbackScore(parche);
+  const targetScore = parche?.recommendation?.score ?? computeFallbackScore(parche);
 
   useEffect(() => {
+    if (loading) return;
     let i = 0;
     const id = setInterval(() => {
       i += 2;
       setScore(Math.min(i, targetScore));
       if (i >= targetScore) clearInterval(id);
-    }, 25);
-
+    }, 20);
     return () => clearInterval(id);
-  }, [targetScore]);
+  }, [targetScore, loading]);
 
   const rec = parche?.recommendation;
   const hasBackend = !!(rec?.top_lugares && rec.top_lugares.length > 0);
@@ -71,18 +133,16 @@ function Match() {
 
   const memberAnswers = parche?.memberAnswers ?? {};
   const allAnswers = Object.values(memberAnswers) as Answer[];
-
   const total = allAnswers.length || 1;
 
   const actCounts: Record<string, number> = {};
-
   allAnswers.forEach((a) => {
     a.actividades?.forEach((act) => {
       actCounts[act] = (actCounts[act] ?? 0) + 1;
     });
   });
 
-   const actLabels: Record<string, { label: string; emoji: string }> = {
+  const actLabels: Record<string, { label: string; emoji: string }> = {
     comer: { label: "Comer rico", emoji: "🍴" },
     lugares_bonitos: { label: "Lugares bonitos", emoji: "📸" },
     cultural: { label: "Cultural", emoji: "🎨" },
@@ -101,8 +161,6 @@ function Match() {
       emoji: actLabels[id]?.emoji ?? "✨",
       value: Math.round((count / total) * 100),
     }));
-
- 
 
   const fallbackCats =
     localCats.length > 0
@@ -136,7 +194,6 @@ function Match() {
 
       <header className="px-5 py-5 flex items-center justify-between">
         <Logo size="sm" />
-
         <Link
           to="/parche/$code"
           params={{ code }}
@@ -152,32 +209,36 @@ function Match() {
             <p className="text-xs tracking-[0.2em] text-[var(--sunset)] font-semibold">
               {hasBackend ? "RECOMENDACIÓN PERSONALIZADA" : "COMPATIBILIDAD GRUPAL"}
             </p>
-
             <h1 className="mt-2 text-3xl font-extrabold">
               {parche?.name ?? "Tu parche"}{" "}
               <span className="text-gradient-sunset">tiene química 🔥</span>
             </h1>
           </div>
 
-          <div className="mt-8 text-center text-5xl font-bold">
-            {score}%
+          {/* Score circle */}
+          <div className="mt-8 flex justify-center">
+            {loading ? (
+              <div className="w-48 h-48 rounded-full glass flex items-center justify-center">
+                <div className="h-8 w-8 border-2 border-[var(--sunset)] border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : (
+              <ScoreCircle score={score} />
+            )}
           </div>
 
           <div className="mt-8 space-y-3">
             {displayCats.map((c, i) => (
               <div key={i}>
                 <div className="flex justify-between text-sm mb-1">
-                  <span>
-                    {c.emoji} {c.label}
-                  </span>
+                  <span>{c.emoji} {c.label}</span>
                   <span>{c.value}%</span>
                 </div>
-
-                <div className="h-2 bg-white/10 rounded-full">
+                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${c.value}%` }}
-                    className="h-full bg-orange-400"
+                    transition={{ duration: 0.8, delay: i * 0.1 }}
+                    className="h-full bg-[image:var(--gradient-sunset)]"
                   />
                 </div>
               </div>
@@ -193,9 +254,7 @@ function Match() {
           </div>
 
           <motion.button
-            onClick={() =>
-              navigate({ to: "/telegram", search: { group_id: code } })
-            }
+            onClick={() => navigate({ to: "/telegram", search: { group_id: code } })}
             className="mt-7 w-full rounded-2xl py-3 flex items-center justify-center gap-2 bg-orange-500 text-white"
           >
             <Sparkles className="h-4 w-4" />

@@ -53,6 +53,7 @@ export const fetchGroupFromSupabase = async (code: string) => {
     .select("*")
     .eq("id", code)
     .single();
+
   if (error) throw error;
 
   const { data: details } = await supabase
@@ -61,10 +62,17 @@ export const fetchGroupFromSupabase = async (code: string) => {
     .eq("group_id", code)
     .single();
 
+  const { data: recommendation } = await supabase
+    .from("recommendation")
+    .select("*")
+    .eq("group_id", code)
+    .single();
+
   return {
     ...group,
     members: (details?.members ?? []) as unknown[],
     quizAnswers: (details?.quiz_answers ?? {}) as Record<string, unknown>,
+    recommendation,
   };
 };
 
