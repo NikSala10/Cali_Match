@@ -102,17 +102,20 @@ def recomendar(req: RecomendacionRequest):
         data.get("quiz_answers", {})
     )
 
-    supabase.table("group_recommendations").insert({
+    supabase.table("group_recommendations").upsert({
         "group_id": req.group_id,
         "score": result["score"],
         "insights": result["insights"],
         "top_lugares": result.get("top_lugares", []),
         "explicacion": result.get("explicacion", "")
-    }).execute()
+    }, on_conflict="group_id").execute()
 
     return {
         "score": result["score"],
-        "insights": (result.get("insights") or [])[:3]
+        "insights": (result.get("insights") or [])[:3],
+        "top_lugares": result.get("top_lugares", []),
+        "explicacion": result.get("explicacion", ""),
+        "persona_prototipica": result.get("persona_prototipica", {}),
     }
 
 # ─────────────────────────────

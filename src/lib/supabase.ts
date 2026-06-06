@@ -63,10 +63,12 @@ export const fetchGroupFromSupabase = async (code: string) => {
     .single();
 
   const { data: recommendation } = await supabase
-    .from("recommendation")
+    .from("group_recommendations")
     .select("*")
     .eq("group_id", code)
-    .single();
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
   return {
     ...group,
