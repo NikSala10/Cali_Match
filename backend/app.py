@@ -104,27 +104,51 @@ def enviar_telegram(req: EnviarTelegramRequest):
 
     result = rec.data[0]
 
-    user = supabase.table("telegram_users") \
+    print(f"[Telegram] Group ID recibido: {req.group_id}")
+
+    users = supabase.table("telegram_users") \
         .select("*") \
         .eq("group_id", req.group_id) \
-        .limit(1) \
         .execute()
 
-    if not user.data:
-        raise HTTPException(404, "Usuario no vinculado a Telegram")
+    print(f"[Telegram] Usuarios encontrados: {len(users.data)}")
 
-    chat_id = user.data[0]["chat_id"]
+    if not users.data:
+        raise HTTPException(
+            404,
+            "Ningún integrante del parche ha vinculado Telegram todavía"
+        )
+
+    chat_ids = [u["chat_id"] for u in users.data]
+    print(f"[Telegram] Chat IDs encontrados: {chat_ids}")
 
     message = build_message(result, req.group_id)
 
-    send_to_telegram(chat_id, message, req.group_id)
+    enviados = 0
+    errores = 0
 
-    supabase.table("group_recommendations") \
-        .update({"telegram_sent": True}) \
-        .eq("id", result["id"]) \
-        .execute()
+    for user in users.data:
+        chat_id = user["chat_id"]
+        try:
+            send_to_telegram(chat_id, message, req.group_id)
+            print(f"[Telegram] Mensaje enviado correctamente a chat_id={chat_id}")
+            enviados += 1
+        except Exception as exc:
+            print(f"[Telegram] Error al enviar a chat_id={chat_id}: {exc}")
+            errores += 1
 
-    return {"ok": True}
+    if enviados > 0:
+        supabase.table("group_recommendations") \
+            .update({"telegram_sent": True}) \
+            .eq("id", result["id"]) \
+            .execute()
+
+    return {
+        "ok": enviados > 0,
+        "usuarios_encontrados": len(users.data),
+        "mensajes_enviados": enviados,
+        "errores": errores,
+    }
 
 # ─────────────────────────────
 # 3. TELEGRAM WEBHOOK
@@ -211,11 +235,14 @@ def build_message(result, group_id):
 # ─────────────────────────────
 
 def send_to_telegram(chat_id, message, group_id):
-    http_requests.post(
-        N8N_WEBHOOK_URL,
-        json={
-            "chat_id": chat_id,
-            "message": message,
-            "group_id": group_id
-        }
-    )
+
+    payload = {
+        "chat_id": chat_id,
+        "message": message,
+        "group_id": group_id
+    }
+
+    print(f"[Telegram] Payload n8n → chat_id={chat_id}: {payload}")
+
+    resp = http_requests.post(N8N_WEBHOOK_URL, json=payload, timeout=10)
+    resp.raise_for_status()
