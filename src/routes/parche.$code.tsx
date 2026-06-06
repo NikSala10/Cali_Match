@@ -88,7 +88,11 @@ function ParcheHub() {
   const active = parche ? isParcheActive(parche) : false;
   const hasAnswered = !!(parche?.memberAnswers?.[myId]) || parche?.adminAnswered === true && isAdmin;
 
-  const answeredSet = new Set(Object.keys(parche?.memberAnswers ?? {}));
+  const answeredSet = new Set(
+  Object.entries(parche?.memberAnswers ?? {})
+    .filter(([_, v]) => v != null)
+    .map(([id]) => id)
+);
   if (parche?.adminAnswered && parche?.createdBy) answeredSet.add(parche.createdBy);
 
   const answeredCount = answeredSet.size;

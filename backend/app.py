@@ -121,7 +121,7 @@ def recomendar(req: RecomendacionRequest):
 
 @app.post("/enviar-telegram")
 def enviar_telegram(req: EnviarTelegramRequest):
-    req.group_id = req.group_id.strip().upper()
+    req.group_id = normalize_group_id(req.group_id)
 
     rec = supabase.table("group_recommendations") \
         .select("*") \
@@ -183,7 +183,7 @@ def telegram_webhook(update: dict):
     last_name = chat.get("last_name") or ""
 
     parts = text.strip().split(maxsplit=1)
-    group_id = parts[1].strip().upper() if len(parts) > 1 and parts[0] == "/start" else None
+    group_id = normalize_group_id(parts[1]) if len(parts) > 1 and parts[0] == "/start" else None
 
     if chat_id and group_id:
         save_telegram_user_group(
@@ -208,7 +208,7 @@ def registrar_telegram(req: RegistrarTelegramRequest):
 
     save_telegram_user_group(
         req.chat_id,
-        req.group_id,
+        normalize_group_id(req.group_id),
         req.username,
         req.first_name,
         req.last_name
@@ -311,3 +311,6 @@ def send_to_telegram(chat_id, message, group_id):
 
     resp = http_requests.post(N8N_WEBHOOK_URL, json=payload, timeout=10)
     resp.raise_for_status()
+
+def normalize_group_id(group_id: str):
+    return group_id.strip().upper()

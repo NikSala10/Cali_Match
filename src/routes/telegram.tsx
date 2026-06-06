@@ -141,41 +141,11 @@ function TelegramRedirect() {
             </button>
           </div>
 
-          {/* Paso 2 — Verificar */}
-          <div className="mt-3 glass rounded-3xl p-5 text-left">
-            <p className="text-xs font-bold tracking-widest text-[var(--sunset)] mb-2">
-              PASO 2 — VERIFICAR VINCULACIÓN
-            </p>
-            <p className="text-sm text-muted-foreground mb-4">
-              Después de abrir el bot, verifica que tu Telegram quedó vinculado al parche.
-            </p>
-            <button
-              onClick={() => void handleCheck()}
-              disabled={checking || !groupId}
-              className="glass rounded-full px-6 py-3 text-sm inline-flex items-center justify-center gap-2 hover:bg-white/10 disabled:opacity-50 transition w-full"
-            >
-              {checking
-                ? <><Loader2 className="h-4 w-4 animate-spin" /> Verificando...</>
-                : "Comprobar vinculación"}
-            </button>
-
-            {vinculados !== null && (
-              <div className={`mt-3 flex items-center gap-2 text-sm rounded-xl px-4 py-2 ${
-                vinculados > 0
-                  ? "bg-emerald-500/10 text-emerald-300 border border-emerald-400/20"
-                  : "bg-red-500/10 text-red-300 border border-red-400/20"
-              }`}>
-                {vinculados > 0
-                  ? <><CheckCircle className="h-4 w-4 shrink-0" /> {vinculados} integrante{vinculados > 1 ? "s han" : " ha"} vinculado Telegram</>
-                  : <><XCircle className="h-4 w-4 shrink-0" /> Nadie ha vinculado aún. Abre el bot y presiona Iniciar.</>}
-              </div>
-            )}
-          </div>
 
           {/* Paso 3 — Enviar */}
           <div className="mt-3 glass rounded-3xl p-5 text-left">
             <p className="text-xs font-bold tracking-widest text-[var(--sunset)] mb-2">
-              PASO 3 — RECIBIR RECOMENDACIÓN
+              PASO 2 — RECIBIR RECOMENDACIÓN
             </p>
             <p className="text-sm text-muted-foreground mb-4">
               Envía la recomendación a todos los integrantes vinculados.
