@@ -117,7 +117,7 @@ def enviar_telegram(req: EnviarTelegramRequest):
 
     message = build_message(result, req.group_id)
 
-    send_to_telegram(chat_id, message)
+    send_to_telegram(chat_id, message, req.group_id)
 
     supabase.table("group_recommendations") \
         .update({"telegram_sent": True}) \
@@ -210,11 +210,12 @@ def build_message(result, group_id):
 # 5. ENVÍO (N8N)
 # ─────────────────────────────
 
-def send_to_telegram(chat_id, message):
+def send_to_telegram(chat_id, message, group_id):
     http_requests.post(
         N8N_WEBHOOK_URL,
         json={
             "chat_id": chat_id,
-            "message": message
+            "message": message,
+            "group_id": group_id
         }
     )
