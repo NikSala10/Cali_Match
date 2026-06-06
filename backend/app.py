@@ -21,6 +21,8 @@ load_dotenv(BASE_DIR.parent / ".env")
 SUPABASE_URL = os.getenv("SUPABASE_URL") or os.getenv("VITE_SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SECRET_KEY")
 N8N_WEBHOOK_URL = os.getenv("N8N_WEBHOOK_URL")
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+BACKEND_URL = (os.getenv("VITE_API_URL") or "").rstrip("/")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     raise RuntimeError("Faltan variables SUPABASE_URL y SUPABASE_SECRET_KEY")
@@ -39,6 +41,29 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.on_event("startup")
+def register_telegram_webhook():
+    if not TELEGRAM_BOT_TOKEN:
+        print("[Telegram] TELEGRAM_BOT_TOKEN no configurado — webhook no registrado")
+        return
+    if not BACKEND_URL:
+        print("[Telegram] VITE_API_URL no configurado — no se puede registrar webhook")
+        return
+    webhook_url = f"{BACKEND_URL}/telegram-webhook"
+    try:
+        resp = http_requests.post(
+            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook",
+            json={"url": webhook_url},
+            timeout=10,
+        )
+        data = resp.json()
+        if data.get("ok"):
+            print(f"[Telegram] Webhook registrado en: {webhook_url}")
+        else:
+            print(f"[Telegram] Error al registrar webhook: {data}")
+    except Exception as exc:
+        print(f"[Telegram] Excepción al registrar webhook: {exc}")
 
 # ─────────────────────────────
 # MODELOS
@@ -167,10 +192,12 @@ def telegram_webhook(update: dict):
     last_name = chat.get("last_name") or ""
 
     parts = text.strip().split(maxsplit=1)
-    group_id = parts[1] if len(parts) > 1 and parts[0] == "/start" else None
+    group_id = parts[1].strip() if len(parts) > 1 and parts[0] == "/start" else None
 
-    if chat_id:
-        supabase.table("telegram_users").upsert(
+    print(f"[Webhook] chat_id={chat_id} text={repr(text)} group_id={group_id}")
+
+    if chat_id and group_id:
+        result = supabase.table("telegram_users").upsert(
             {
                 "chat_id": str(chat_id),
                 "username": username,
@@ -181,8 +208,24 @@ def telegram_webhook(update: dict):
             },
             on_conflict="chat_id"
         ).execute()
+        print(f"[Webhook] Usuario guardado: chat_id={chat_id} group_id={group_id} data={result.data}")
+    elif chat_id and not group_id:
+        print(f"[Webhook] Mensaje sin group_id para chat_id={chat_id} — no se registra")
 
     return {"ok": True}
+
+
+@app.get("/debug-telegram/{group_id}")
+def debug_telegram(group_id: str):
+    all_users = supabase.table("telegram_users").select("chat_id,username,group_id,updated_at").execute()
+    group_users = [u for u in all_users.data if u.get("group_id") == group_id]
+    return {
+        "group_id_buscado": group_id,
+        "total_usuarios_en_tabla": len(all_users.data),
+        "usuarios_en_este_grupo": len(group_users),
+        "detalle": group_users,
+        "todos_los_group_ids": list({u.get("group_id") for u in all_users.data}),
+    }
 
 # ─────────────────────────────
 # 4. MENSAJE TELEGRAM (COMPLETO)
