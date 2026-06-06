@@ -213,16 +213,30 @@ def telegram_webhook(update: dict):
 
 @app.post("/registrar-telegram")
 def registrar_telegram(req: RegistrarTelegramRequest):
-    """
-    Endpoint alternativo para que n8n registre usuarios cuando recibe /start GROUP_ID.
-    Configurar en n8n: POST https://cali-match.onrender.com/registrar-telegram
-    Body: { chat_id, group_id, username, first_name, last_name }
-    """
+
     if not req.chat_id or not req.group_id:
         raise HTTPException(400, "chat_id y group_id son requeridos")
 
-    _upsert_telegram_user(req.chat_id, req.group_id, req.username, req.first_name, req.last_name)
-    return {"ok": True, "chat_id": req.chat_id, "group_id": req.group_id}
+    try:
+        result = _upsert_telegram_user(
+            req.chat_id,
+            req.group_id,
+            req.username,
+            req.first_name,
+            req.last_name
+        )
+
+        return {
+            "ok": True,
+            "chat_id": req.chat_id,
+            "group_id": req.group_id,
+            "saved": True,
+            "db_response": result.data
+        }
+
+    except Exception as e:
+        print("[REGISTER ERROR]", str(e))
+        raise HTTPException(500, str(e))
 
 
 def _upsert_telegram_user(
@@ -247,6 +261,7 @@ def _upsert_telegram_user(
 
         print("[Telegram] Usuario registrado")
         print(result.data)
+        print("[UPSERT RESULT]", result.data)
 
         return result
 
@@ -330,3 +345,18 @@ def send_to_telegram(chat_id, message, group_id):
 
     resp = http_requests.post(N8N_WEBHOOK_URL, json=payload, timeout=10)
     resp.raise_for_status()
+
+@app.get("/debug-telegram-users/{group_id}")
+def debug(group_id: str):
+    data = supabase.table("telegram_users") \
+        .select("*") \
+        .eq("group_id", group_id) \
+        .execute()
+
+    return {
+        "count": len(data.data),
+        "data": data.data
+    }
+    print("REQ:", req.dict())
+    print("GROUP:", req.group_id)
+    print("CHAT:", req.chat_id)
