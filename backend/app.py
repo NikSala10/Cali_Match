@@ -121,6 +121,7 @@ def recomendar(req: RecomendacionRequest):
 
 @app.post("/enviar-telegram")
 def enviar_telegram(req: EnviarTelegramRequest):
+    req.group_id = req.group_id.strip().upper()
 
     rec = supabase.table("group_recommendations") \
         .select("*") \
@@ -128,6 +129,7 @@ def enviar_telegram(req: EnviarTelegramRequest):
         .order("created_at", desc=True) \
         .limit(1) \
         .execute()
+    print("REQ GROUP:", repr(req.group_id))
 
     if not rec.data:
         raise HTTPException(404, "No hay recomendación")
@@ -146,6 +148,9 @@ def enviar_telegram(req: EnviarTelegramRequest):
 
     enviados = 0
     errores = 0
+    print("ALL GROUP IDS:", [
+        u["group_id"] for u in users.data
+    ])
 
     for user in users.data:
         try:
@@ -178,7 +183,7 @@ def telegram_webhook(update: dict):
     last_name = chat.get("last_name") or ""
 
     parts = text.strip().split(maxsplit=1)
-    group_id = parts[1].strip() if len(parts) > 1 and parts[0] == "/start" else None
+    group_id = parts[1].strip().upper() if len(parts) > 1 and parts[0] == "/start" else None
 
     if chat_id and group_id:
         save_telegram_user_group(
