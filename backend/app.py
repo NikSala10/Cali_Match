@@ -225,20 +225,35 @@ def registrar_telegram(req: RegistrarTelegramRequest):
     return {"ok": True, "chat_id": req.chat_id, "group_id": req.group_id}
 
 
-def _upsert_telegram_user(chat_id: str, group_id: str, username: str, first_name: str, last_name: str):
-    """Inserta o actualiza la vinculación usuario-grupo. Soporta múltiples grupos por usuario."""
-    result = supabase.table("telegram_users").upsert(
-        {
-            "chat_id": chat_id,
-            "username": username,
-            "first_name": first_name,
-            "last_name": last_name,
-            "group_id": group_id,
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        },
-        on_conflict="chat_id,group_id"
-    ).execute()
-    print(f"[Telegram] Vinculado: chat_id={chat_id} group_id={group_id} resultado={result.data}")
+def _upsert_telegram_user(
+    chat_id: str,
+    group_id: str,
+    username: str,
+    first_name: str,
+    last_name: str,
+):
+    try:
+        result = supabase.table("telegram_users").upsert(
+            {
+                "chat_id": chat_id,
+                "username": username,
+                "first_name": first_name,
+                "last_name": last_name,
+                "group_id": group_id,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            },
+            on_conflict="chat_id"
+        ).execute()
+
+        print("[Telegram] Usuario registrado")
+        print(result.data)
+
+        return result
+
+    except Exception as e:
+        print("[Telegram] ERROR REGISTRANDO USUARIO")
+        print(str(e))
+        raise
 
 
 @app.get("/debug-telegram/{group_id}")
