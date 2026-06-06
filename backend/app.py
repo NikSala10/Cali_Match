@@ -75,6 +75,13 @@ class RecomendacionRequest(BaseModel):
 class EnviarTelegramRequest(BaseModel):
     group_id: str
 
+class RegistrarTelegramRequest(BaseModel):
+    chat_id: str
+    group_id: str
+    username: str = ""
+    first_name: str = ""
+    last_name: str = ""
+
 # ─────────────────────────────
 # 1. RECOMENDAR (WEB SOLO RESUMEN)
 # ─────────────────────────────
@@ -197,22 +204,41 @@ def telegram_webhook(update: dict):
     print(f"[Webhook] chat_id={chat_id} text={repr(text)} group_id={group_id}")
 
     if chat_id and group_id:
-        result = supabase.table("telegram_users").upsert(
-            {
-                "chat_id": str(chat_id),
-                "username": username,
-                "first_name": first_name,
-                "last_name": last_name,
-                "group_id": group_id,
-                "updated_at": datetime.now(timezone.utc).isoformat(),
-            },
-            on_conflict="chat_id"
-        ).execute()
-        print(f"[Webhook] Usuario guardado: chat_id={chat_id} group_id={group_id} data={result.data}")
-    elif chat_id and not group_id:
-        print(f"[Webhook] Mensaje sin group_id para chat_id={chat_id} — no se registra")
+        _upsert_telegram_user(str(chat_id), group_id, username, first_name, last_name)
+    else:
+        print(f"[Webhook] Sin group_id para chat_id={chat_id} — ignorado")
 
     return {"ok": True}
+
+
+@app.post("/registrar-telegram")
+def registrar_telegram(req: RegistrarTelegramRequest):
+    """
+    Endpoint alternativo para que n8n registre usuarios cuando recibe /start GROUP_ID.
+    Configurar en n8n: POST https://cali-match.onrender.com/registrar-telegram
+    Body: { chat_id, group_id, username, first_name, last_name }
+    """
+    if not req.chat_id or not req.group_id:
+        raise HTTPException(400, "chat_id y group_id son requeridos")
+
+    _upsert_telegram_user(req.chat_id, req.group_id, req.username, req.first_name, req.last_name)
+    return {"ok": True, "chat_id": req.chat_id, "group_id": req.group_id}
+
+
+def _upsert_telegram_user(chat_id: str, group_id: str, username: str, first_name: str, last_name: str):
+    """Inserta o actualiza la vinculación usuario-grupo. Soporta múltiples grupos por usuario."""
+    result = supabase.table("telegram_users").upsert(
+        {
+            "chat_id": chat_id,
+            "username": username,
+            "first_name": first_name,
+            "last_name": last_name,
+            "group_id": group_id,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        },
+        on_conflict="chat_id,group_id"
+    ).execute()
+    print(f"[Telegram] Vinculado: chat_id={chat_id} group_id={group_id} resultado={result.data}")
 
 
 @app.get("/debug-telegram/{group_id}")
