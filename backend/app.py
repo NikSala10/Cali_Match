@@ -317,3 +317,7 @@ def send_to_telegram(chat_id, message, group_id):
 
 def normalize_group_id(group_id: str):
     return group_id.strip().upper()
+
+@app.get("/test")
+def test():
+    return {"ok": True}

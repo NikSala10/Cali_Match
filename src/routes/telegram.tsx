@@ -53,6 +53,8 @@ function TelegramRedirect() {
   const botDeepLink = groupId
     ? `https://t.me/${BOT_HANDLE}?start=${groupId}`
     : `https://t.me/${BOT_HANDLE}`;
+    console.log("GROUP ID:", groupId);
+    console.log("BOT LINK:", botDeepLink);
 
   const copy = async () => {
     await navigator.clipboard.writeText(botDeepLink);

@@ -39,25 +39,52 @@ export interface RecommendationResponse {
   saved?: boolean;
 }
 
+const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
 export const generateRecommendationFromBackend = async (
   groupId: string,
 ): Promise<RecommendationResponse> => {
-  console.log("API_BASE =", API_BASE);
-  const response = await fetch(`${API_BASE}/recomendar`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ group_id: groupId }),
-  });
+  const MAX_ATTEMPTS = 3;
+  // Render free tier can take ~30s to wake up; retry with increasing delays
+  const DELAYS_MS = [0, 15_000, 20_000];
 
-  const data = await response.json().catch(() => ({}));
+  let lastError: unknown;
 
-  if (!response.ok) {
-    const message =
-      typeof data === "object" && data && "detail" in data
-        ? String((data as { detail?: unknown }).detail)
-        : "No se pudo generar la recomendación.";
-    throw new Error(message);
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    if (DELAYS_MS[attempt] > 0) await delay(DELAYS_MS[attempt]);
+
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 55_000);
+
+      const response = await fetch(`${API_BASE}/recomendar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ group_id: groupId }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeout);
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        const message =
+          typeof data === "object" && data && "detail" in data
+            ? String((data as { detail?: unknown }).detail)
+            : "No se pudo generar la recomendación.";
+        throw new Error(message);
+      }
+
+      return data as RecommendationResponse;
+    } catch (err) {
+      lastError = err;
+      // Only retry on network/abort errors, not on 4xx/5xx from the server
+      const isNetworkError =
+        err instanceof TypeError || (err instanceof DOMException && err.name === "AbortError");
+      if (!isNetworkError) throw err;
+    }
   }
 
-  return data as RecommendationResponse;
+  throw lastError;
 };
