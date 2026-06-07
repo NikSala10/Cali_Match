@@ -42,6 +42,7 @@ export interface RecommendationResponse {
 export const generateRecommendationFromBackend = async (
   groupId: string,
 ): Promise<RecommendationResponse> => {
+  console.log("API_BASE =", API_BASE);
   const response = await fetch(`${API_BASE}/recomendar`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
