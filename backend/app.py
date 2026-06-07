@@ -205,6 +205,15 @@ def enviar_telegram(req: EnviarTelegramRequest):
 @app.post("/telegram-webhook")
 def telegram_webhook(update: dict):
 
+     # Reenviar callbacks de botones a n8n
+    if "callback_query" in update:
+        n8n_callback_url = "https://niiky10.app.n8n.cloud/webhook/calimatch-telegram-callback"
+        try:
+            http_requests.post(n8n_callback_url, json=update, timeout=10)
+        except Exception as e:
+            print("[CALLBACK FORWARD ERROR]", str(e))
+        return {"ok": True}
+
     msg = update.get("message", {})
     chat = msg.get("chat", {})
     text = msg.get("text", "") or ""
