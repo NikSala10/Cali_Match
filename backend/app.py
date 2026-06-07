@@ -86,10 +86,11 @@ def register_telegram_webhook():
 
 @app.post("/recomendar")
 def recomendar(req: RecomendacionRequest):
+    group_id = normalize_group_id(req.group_id)
 
     details = supabase.table("group_details") \
         .select("*") \
-        .eq("group_id", req.group_id) \
+        .eq("group_id", group_id) \
         .execute()
 
     if not details.data:
@@ -103,7 +104,7 @@ def recomendar(req: RecomendacionRequest):
     )
 
     supabase.table("group_recommendations").upsert({
-        "group_id": req.group_id,
+        "group_id": group_id,
         "score": result["score"],
         "insights": result["insights"],
         "top_lugares": result.get("top_lugares", []),
@@ -124,43 +125,61 @@ def recomendar(req: RecomendacionRequest):
 
 @app.post("/enviar-telegram")
 def enviar_telegram(req: EnviarTelegramRequest):
-    req.group_id = normalize_group_id(req.group_id)
+    group_id = normalize_group_id(req.group_id)
 
     rec = supabase.table("group_recommendations") \
         .select("*") \
-        .eq("group_id", req.group_id) \
+        .eq("group_id", group_id) \
         .order("created_at", desc=True) \
         .limit(1) \
         .execute()
-    print("REQ GROUP:", repr(req.group_id))
 
+    # Si no hay recomendación guardada, generarla ahora
     if not rec.data:
-        raise HTTPException(404, "No hay recomendación")
-
-    result = rec.data[0]
+        details = supabase.table("group_details") \
+            .select("*") \
+            .eq("group_id", group_id) \
+            .execute()
+        if not details.data:
+            raise HTTPException(404, "Grupo no encontrado")
+        data = details.data[0]
+        gen = recomendar_lugares(
+            data.get("members", []),
+            data.get("quiz_answers", {})
+        )
+        supabase.table("group_recommendations").upsert({
+            "group_id": group_id,
+            "score": gen["score"],
+            "insights": gen["insights"],
+            "top_lugares": gen.get("top_lugares", []),
+            "explicacion": gen.get("explicacion", "")
+        }, on_conflict="group_id").execute()
+        result = {
+            "group_id": group_id,
+            "score": gen["score"],
+            "insights": gen["insights"],
+            "top_lugares": gen.get("top_lugares", []),
+            "explicacion": gen.get("explicacion", "")
+        }
+    else:
+        result = rec.data[0]
 
     users = supabase.table("telegram_user_groups") \
         .select("*") \
-        .eq("group_id", req.group_id) \
+        .eq("group_id", group_id) \
         .execute()
-    print("REQ GROUP:", repr(req.group_id))
-    print("REC:", rec.data)
-    print("USERS:", users.data)
 
     if not users.data:
-        raise HTTPException(404, "No hay usuarios en este grupo")
+        raise HTTPException(404, "No hay usuarios vinculados en este grupo")
 
-    message = build_message(result, req.group_id)
+    message = build_message(result, group_id)
 
     enviados = 0
     errores = 0
-    print("ALL GROUP IDS:", [
-        u["group_id"] for u in users.data
-    ])
 
     for user in users.data:
         try:
-            send_to_telegram(user["chat_id"], message, req.group_id)
+            send_to_telegram(user["chat_id"], message, group_id)
             enviados += 1
         except Exception as e:
             print("[SEND ERROR]", e)
