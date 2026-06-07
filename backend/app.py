@@ -103,13 +103,13 @@ def recomendar(req: RecomendacionRequest):
         data.get("quiz_answers", {})
     )
 
-    supabase.table("group_recommendations").upsert({
+    supabase.table("group_recommendations").insert({
         "group_id": group_id,
         "score": result["score"],
         "insights": result["insights"],
         "top_lugares": result.get("top_lugares", []),
         "explicacion": result.get("explicacion", "")
-    }, on_conflict="group_id").execute()
+    }).execute()
 
     return {
         "score": result["score"],
@@ -147,13 +147,13 @@ def enviar_telegram(req: EnviarTelegramRequest):
             data.get("members", []),
             data.get("quiz_answers", {})
         )
-        supabase.table("group_recommendations").upsert({
+        supabase.table("group_recommendations").insert({
             "group_id": group_id,
             "score": gen["score"],
             "insights": gen["insights"],
             "top_lugares": gen.get("top_lugares", []),
             "explicacion": gen.get("explicacion", "")
-        }, on_conflict="group_id").execute()
+        }).execute()
         result = {
             "group_id": group_id,
             "score": gen["score"],
