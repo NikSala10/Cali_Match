@@ -133,6 +133,9 @@ def enviar_telegram(req: EnviarTelegramRequest):
         .limit(1) \
         .execute()
     print("REQ GROUP:", repr(req.group_id))
+    print("REQ GROUP:", repr(req.group_id))
+    print("REC:", rec.data)
+    print("USERS:", users.data)
 
     if not rec.data:
         raise HTTPException(404, "No hay recomendación")
