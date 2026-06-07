@@ -103,13 +103,16 @@ def recomendar(req: RecomendacionRequest):
         data.get("quiz_answers", {})
     )
 
-    supabase.table("group_recommendations").insert({
+    supabase.table("group_recommendations").upsert(
+    {
         "group_id": group_id,
         "score": result["score"],
         "insights": result["insights"],
         "top_lugares": result.get("top_lugares", []),
         "explicacion": result.get("explicacion", "")
-    }).execute()
+    },
+    on_conflict="group_id"
+    ).execute()
 
     return {
         "score": result["score"],
@@ -222,6 +225,15 @@ def telegram_webhook(update: dict):
             first_name,
             last_name
         )
+        http_requests.post(
+                f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+                json={
+                    "chat_id": chat_id,
+                    "text": f"""✅ Tu cuenta quedó vinculada correctamente al grupo {group_id}.
+
+        Ya podrás recibir recomendaciones de CaliMatch."""
+                }
+            )
 
     return {"ok": True}
 
@@ -298,32 +310,39 @@ def debug(group_id: str):
 
 def build_message(result, group_id):
 
-    insights_text = "\n".join(
-        f"✨ {i}" for i in (result.get("insights") or [])
-    )
-
+    score = result.get("score", "—")
+    insights = result.get("insights") or []
     lugares = result.get("top_lugares") or []
 
+    insights_text = "\n".join(
+        f"• {item}" for item in insights[:3]
+    )
+
     lugares_text = ""
-    if lugares:
-        lines = []
 
-        for idx, l in enumerate(lugares[:5], 1):
-            lines.append(
-                f"{idx}. {l.get('nombre')} ({l.get('match_pct')}%)"
-            )
-
-        lugares_text = "\n\n🏆 Mejores lugares:\n\n" + "\n".join(lines)
+    for idx, lugar in enumerate(lugares[:5], start=1):
+        lugares_text += (
+            f"\n{idx}. {lugar.get('emoji', '📍')} "
+            f"{lugar.get('nombre')} "
+            f"({lugar.get('match_pct')}%)"
+        )
 
     return f"""
-🔥 CALIMATCH - {group_id}
+🔥 CALIMATCH
 
-📊 Score: {result.get('score', '—')}%
+👥 Parche: {group_id}
 
-💡 Insights:
+💘 Compatibilidad grupal:
+{score}%
+
+🧠 Lo que encontramos:
+
 {insights_text}
 
+🏆 Lugares recomendados:
 {lugares_text}
+
+✨ Ya pueden coordinar la salida y escoger el lugar que más les guste.
 """
 
 # ─────────────────────────────
@@ -331,6 +350,9 @@ def build_message(result, group_id):
 # ─────────────────────────────
 
 def send_to_telegram(chat_id, message, group_id):
+    print("ENVIANDO A N8N")
+    print("CHAT:", chat_id)
+    print("GROUP:", group_id)
 
     payload = {
         "chat_id": chat_id,
@@ -339,6 +361,8 @@ def send_to_telegram(chat_id, message, group_id):
     }
 
     resp = http_requests.post(N8N_WEBHOOK_URL, json=payload, timeout=10)
+    print("N8N STATUS:", resp.status_code)
+    print("N8N RESPONSE:", resp.text)
     resp.raise_for_status()
 
 def normalize_group_id(group_id: str):
@@ -347,3 +371,11 @@ def normalize_group_id(group_id: str):
 @app.get("/test")
 def test():
     return {"ok": True}
+
+@app.get("/debug-env")
+def debug_env():
+    return {
+        "n8n": bool(N8N_WEBHOOK_URL),
+        "telegram": bool(TELEGRAM_BOT_TOKEN),
+        "backend": BACKEND_URL
+    }
