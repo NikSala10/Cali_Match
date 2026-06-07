@@ -315,36 +315,36 @@ def build_message(result, group_id):
     lugares = result.get("top_lugares") or []
 
     insights_text = "\n".join(
-        f"• {item}" for item in insights[:3]
+        f"✨ {item}" for item in insights[:3]
     )
 
-    lugares_text = ""
+    lugares_lines = []
 
-    for idx, lugar in enumerate(lugares[:5], start=1):
-        lugares_text += (
-            f"\n{idx}. {lugar.get('emoji', '📍')} "
-            f"{lugar.get('nombre')} "
-            f"({lugar.get('match_pct')}%)"
+    for idx, lugar in enumerate(lugares[:4], start=1):
+        lugares_lines.append(
+            f"""{idx}. {lugar.get("nombre")} ({lugar.get("match_pct")}% match)
+   📍 {lugar.get("barrio")} | {lugar.get("categoria")}
+   🧠 {lugar.get("descripcion")}"""
         )
 
-    return f"""
-🔥 CALIMATCH
+    lugares_text = "\n\n".join(lugares_lines)
 
-👥 Parche: {group_id}
+    return f"""🔥 CALIMATCH - RESULTADO DEL PARCHE {group_id}
 
-💘 Compatibilidad grupal:
-{score}%
+📊 Score: {score}%
 
-🧠 Lo que encontramos:
+────────────────────
 
+💡 Insights:
 {insights_text}
 
-🏆 Lugares recomendados:
+
+🏆 Mejores lugares:
+
 {lugares_text}
 
-✨ Ya pueden coordinar la salida y escoger el lugar que más les guste.
+🍹 ¡Disfruten el parche!. ✨ Ya pueden coordinar la salida y escoger el lugar que más les guste.
 """
-
 # ─────────────────────────────
 # 8. SEND TELEGRAM VIA N8N
 # ─────────────────────────────
