@@ -126,6 +126,8 @@ def recomendar(req: RecomendacionRequest):
 @app.post("/enviar-telegram")
 def enviar_telegram(req: EnviarTelegramRequest):
     group_id = normalize_group_id(req.group_id)
+    print("==========")
+    print("GROUP:", group_id)
 
     rec = supabase.table("group_recommendations") \
         .select("*") \
@@ -133,6 +135,7 @@ def enviar_telegram(req: EnviarTelegramRequest):
         .order("created_at", desc=True) \
         .limit(1) \
         .execute()
+    print("RECOMMENDATIONS:", rec.data)
 
     # Si no hay recomendación guardada, generarla ahora
     if not rec.data:
@@ -168,6 +171,7 @@ def enviar_telegram(req: EnviarTelegramRequest):
         .select("*") \
         .eq("group_id", group_id) \
         .execute()
+    print("USERS:", users.data)
 
     if not users.data:
         raise HTTPException(404, "No hay usuarios vinculados en este grupo")
