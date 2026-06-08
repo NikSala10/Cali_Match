@@ -48,6 +48,7 @@ app.add_middleware(
 
 class RecomendacionRequest(BaseModel):
     group_id: str
+    exclude_places: list = []
 
 class EnviarTelegramRequest(BaseModel):
     group_id: str
@@ -58,6 +59,8 @@ class RegistrarTelegramRequest(BaseModel):
     username: str = ""
     first_name: str = ""
     last_name: str = ""
+
+
 
 # ─────────────────────────────
 # STARTUP
@@ -100,7 +103,8 @@ def recomendar(req: RecomendacionRequest):
 
     result = recomendar_lugares(
         data.get("members", []),
-        data.get("quiz_answers", {})
+        data.get("quiz_answers", {}),
+        exclude_places=req.exclude_places  # ← agregar esto
     )
 
     supabase.table("group_recommendations").upsert(
@@ -388,3 +392,4 @@ def debug_env():
         "telegram": bool(TELEGRAM_BOT_TOKEN),
         "backend": BACKEND_URL
     }
+

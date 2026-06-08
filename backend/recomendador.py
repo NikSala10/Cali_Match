@@ -665,6 +665,7 @@ def recomendar_lugares(
     miembros: list[Any],
     quiz_answers_input: Any = None,
     top_n: int = 4,
+    exclude_places: list = [],  # ← agregar esto
 ) -> dict[str, Any]:
     """
     Main recommendation function.
@@ -687,6 +688,9 @@ def recomendar_lugares(
     }
     """
     lugares_data = _cargar_lugares()
+    # Filtrar lugares excluidos
+    if exclude_places:
+        lugares_data = [l for l in lugares_data if l.get("id") not in exclude_places]
 
     # Build prototypic person
     proto = build_prototypic_person(quiz_answers_input)
