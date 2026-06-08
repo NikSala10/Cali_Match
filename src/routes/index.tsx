@@ -208,8 +208,8 @@ function Landing() {
             },
             {
               i: MessageCircle,
-              t: "Chatea con el bot",
-              d: "Cuéntale al bot qué quieren: salsa, brunch, rooftop, presupuesto.",
+              t: "Responde el cuestionario",
+              d: "Cada persona responde unas preguntas rápidas sobre sus gustos y planes.",
             },
             {
               i: Sparkles,
