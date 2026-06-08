@@ -4,8 +4,9 @@ import { useState } from "react";
 import { ArrowRight, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { GlowBg } from "@/components/GlowBg";
 import { Logo } from "@/components/Logo";
-import { saveProfile, saveSession } from "@/lib/parche-store";
+import { saveProfile, saveSession, clearSession } from "@/lib/parche-store";
 import { supabase } from "@/lib/supabase";
+
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Iniciar sesión — CaliMatch" }] }),
@@ -62,6 +63,13 @@ function Login() {
       const celular = (meta.celular as string | undefined) ?? profile.celular ?? "";
       const fechaNacimiento =
         (meta.fecha_nacimiento as string | undefined) ?? profile.fecha_nacimiento ?? "";
+
+      // Limpiar datos de sesión anterior
+      clearSession();
+      // Limpiar parches de la sesión anterior
+      localStorage.removeItem('cg.parche');
+      localStorage.removeItem('cg.parches');
+      localStorage.removeItem('cg.onboarding');
 
       saveSession(userId, authData.user.email ?? profile.email ?? form.email.trim());
       saveProfile({

@@ -1,7 +1,7 @@
 // Lightweight client-side store using localStorage.
 export type Vibe = "salsa" | "rooftop" | "brunch" | "cafe" | "cultura" | "perreo";
 export type Ambiente = "elegante" | "casual" | "alternativo" | "tropical" | "romantico" | "fiesta";
-export type Horario = "tarde" | "noche" | "madrugada";
+export type Horario = "manana" | "tarde" | "noche";
 
 export interface Profile {
   name: string;

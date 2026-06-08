@@ -48,9 +48,9 @@ const ambienteOpts = [
 
 // ── Step 3: Horario ───────────────────────────────────────────────────────────
 const horarioOpts: { id: Horario; label: string; emoji: string; time: string }[] = [
+  { id: "manana", label: "Mañana", emoji: "🌅", time: "8am – 12pm" },
   { id: "tarde", label: "Tarde", emoji: "🌤️", time: "3pm – 7pm" },
   { id: "noche", label: "Noche", emoji: "🌙", time: "8pm – 12am" },
-  { id: "madrugada", label: "Madrugada", emoji: "🌃", time: "12am en adelante" },
 ];
 
 // ── Step 4: Turístico (nuevo) ─────────────────────────────────────────────────
@@ -263,7 +263,7 @@ function Onboarding() {
               {/* STEP 4 — ¿Qué tan turístico? (nuevo) */}
               {step === 4 && (
                 <StepShell
-                  title="¿Qué tan turístico quieres que sea el plan?"
+                  title="¿Qué tan turístico te gusta que sea el plan?"
                   subtitle="Esto nos ayuda a personalizar los lugares que te recomendamos."
                 >
                   <div className="grid gap-3 mt-6">
