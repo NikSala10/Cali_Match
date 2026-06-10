@@ -225,6 +225,24 @@ function Match() {
               <ScoreCircle score={score} />
             )}
           </div>
+          {/* Banner Telegram */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="mt-6 p-4 rounded-2xl border border-orange-500/30 bg-orange-500/10 flex items-start gap-3"
+        >
+          <span className="text-2xl">📱</span>
+          <div>
+            <p className="text-sm font-semibold text-orange-400">
+              ¡La recomendación completa llega por Telegram!
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Aquí ves el resumen. En Telegram recibirás los lugares detallados, 
+              podrás votar por tu favorito y pedir nuevas opciones con tu grupo.
+            </p>
+          </div>
+        </motion.div>
 
           <div className="mt-8 space-y-3">
             {displayCats.map((c, i) => (
@@ -258,7 +276,7 @@ function Match() {
             className="mt-7 w-full rounded-2xl py-3 flex items-center justify-center gap-2 bg-orange-500 text-white"
           >
             <Sparkles className="h-4 w-4" />
-            Ir a Telegram <ArrowRight className="h-4 w-4" />
+             Ver recomendación completa en Telegram <ArrowRight className="h-4 w-4" />
           </motion.button>
         </div>
       </main>

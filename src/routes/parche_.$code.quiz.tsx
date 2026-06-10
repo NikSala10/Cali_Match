@@ -171,9 +171,11 @@ function QuizPage() {
     saveParche(updated);
 
     try {
+      console.log("[quiz] Guardando en Supabase:", code, myId, answers);
       await saveMemberQuizToSupabase(code, myId, answers);
+      console.log("[quiz] Guardado exitoso");
     } catch (err) {
-      console.error("[quiz] No se pudo guardar en Supabase:", err);
+      console.error("[quiz] Error completo:", err);
     }
 
     setSaving(false);

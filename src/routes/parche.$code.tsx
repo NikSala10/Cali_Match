@@ -90,7 +90,7 @@ function ParcheHub() {
 
   const answeredSet = new Set(
   Object.entries(parche?.memberAnswers ?? {})
-    .filter(([_, v]) => v != null)
+    .filter(([_, v]) => v != null && Object.keys(v as object).length > 0)
     .map(([id]) => id)
 );
   if (parche?.adminAnswered && parche?.createdBy) answeredSet.add(parche.createdBy);
@@ -284,7 +284,10 @@ function ParcheHub() {
                   )}
                 </div>
                 <h1 className="mt-1 text-2xl md:text-3xl font-extrabold leading-tight">{parche.name}</h1>
-                <p className="text-xs text-muted-foreground mt-1 font-mono tracking-widest">{code}</p>
+                <div className="mt-2 inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-3 py-1">
+                  <span className="text-xs text-muted-foreground">Código de invitación</span>
+                  <span className="text-xs font-mono font-bold text-[var(--sunset)] tracking-widest">{code}</span>
+                </div>
               </div>
 
               <div className="flex items-center gap-2 shrink-0">

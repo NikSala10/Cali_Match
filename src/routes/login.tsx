@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ArrowRight, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { GlowBg } from "@/components/GlowBg";
 import { Logo } from "@/components/Logo";
-import { saveProfile, saveSession, clearSession } from "@/lib/parche-store";
+import { saveProfile, saveSession, clearSession, getSessionId  } from "@/lib/parche-store";
 import { supabase } from "@/lib/supabase";
 
 
@@ -65,11 +65,15 @@ function Login() {
         (meta.fecha_nacimiento as string | undefined) ?? profile.fecha_nacimiento ?? "";
 
       // Limpiar datos de sesión anterior
-      clearSession();
-      // Limpiar parches de la sesión anterior
-      localStorage.removeItem('cg.parche');
-      localStorage.removeItem('cg.parches');
-      localStorage.removeItem('cg.onboarding');
+      const currentSessionId = getSessionId();
+
+      if (currentSessionId && currentSessionId !== userId) {
+        // Solo limpia si es una cuenta diferente
+        clearSession();
+        localStorage.removeItem('cg.parche');
+        localStorage.removeItem('cg.parches');
+        localStorage.removeItem('cg.onboarding');
+      }
 
       saveSession(userId, authData.user.email ?? profile.email ?? form.email.trim());
       saveProfile({

@@ -26,6 +26,8 @@ function LandingSwitch() {
   useEffect(() => {
     const loadProfile = async () => {
       const localId = getSessionId();
+      // Despertar el servidor de Render
+      fetch('https://cali-match.onrender.com/test').catch(() => {});
       const { data: sessionData } = await supabase.auth.getSession();
       const authUser = sessionData?.session?.user ?? null;
       const userId = localId || authUser?.id || null;
@@ -60,6 +62,41 @@ function LandingSwitch() {
 
       // Show local data immediately while we validate
       setParches(mine);
+      // Si no hay parches en local, buscar en Supabase por created_by
+      if (mine.length === 0 && userId) {
+        try {
+          const { data: remoteGroups } = await supabase
+            .from("groups")
+            .select("*")
+            .eq("created_by", userId);
+
+          if (remoteGroups && remoteGroups.length > 0) {
+            const recovered: Parche[] = [];
+            for (const g of remoteGroups) {
+              try {
+                const remote = await fetchGroupFromSupabase(g.id);
+                const parche: Parche = {
+                  code: remote.id as string,
+                  name: remote.name as string,
+                  size: remote.size as number,
+                  createdBy: remote.created_by as string | null,
+                  members: (remote.members as Member[]) ?? [],
+                  status: (remote.status as Parche["status"]) ?? "active",
+                  finalizedAt: remote.finalized_at as string | undefined,
+                  memberAnswers: (remote.quizAnswers as Record<string, AdminQuiz>) ?? {},
+                };
+                saveParche(parche);
+                recovered.push(parche);
+              } catch {
+                // skip
+              }
+            }
+            setParches(recovered);
+          }
+        } catch (err) {
+          console.error("[landing] Error recuperando grupos:", err);
+        }
+      }
 
       // Validate each group against Supabase in parallel.
       // Remove stale groups (deleted from DB) and refresh member/answer data.
