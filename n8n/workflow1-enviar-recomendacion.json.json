@@ -1,0 +1,116 @@
+{
+  "name": "CaliMatch",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "calimatch-recommendation",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "b487be06-25fa-4714-ac26-cdcce5f3bb54",
+      "name": "Webhook",
+      "webhookId": "4fdfedf6-a976-40cb-8b80-bcdb97b854a6"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.body.chat_id }}",
+        "text": "={{ $json.body.message }}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "👍 Votar favorito",
+                    "additionalFields": {
+                      "callback_data": "=={{ \"vote_favorite|\" + $json.body.group_id }}"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "🔄 Nueva recomendación",
+                    "additionalFields": {
+                      "callback_data": "=={{ \"reroll|\" + $json.body.group_id }}"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "⭐ Calificar experiencia",
+                    "additionalFields": {
+                      "callback_data": "=={{ \"review|\" + $json.body.group_id }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "5a5f4872-837c-4a11-af0c-3029ee6c5cb7",
+      "name": "Send a text message",
+      "webhookId": "61832574-9a87-400a-94a2-bc4383f33ce2",
+      "credentials": {
+        "telegramApi": {
+          "id": "IoddRxxNCpZW6BMc",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "bae4e64b-8111-4710-832b-50b4006e9bdf",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "794b830a2ba3c1688097b85f05d1f8eea8001a824c7f1d2982831e93fc060705"
+  },
+  "nodeGroups": [],
+  "id": "SyTBQHA2QaEKch8K",
+  "tags": []
+}

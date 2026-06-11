@@ -1,0 +1,111 @@
+{
+  "name": "CaliMatch Telegram Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "calimatch-telegram-callback",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        224,
+        784
+      ],
+      "id": "8461267f-a1f4-4ef3-9a2c-48788b22e826",
+      "name": "Webhook",
+      "webhookId": "b7c19e85-13ec-4ac3-af9d-49aa829d03d0"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2a77084f-3719-4f2d-8302-ed164894cb82",
+              "leftValue": "=={{ $json.body.callback_query.data.split('|')[0] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        432,
+        784
+      ],
+      "id": "df7db8c8-2987-4279-9ce2-8246b9ad5c52",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nconst callback = body?.callback_query;\nconst data = callback?.data;\nconst clean = data?.replace(/^=/, '');\nconst split = clean?.split('|');\nconst action = split?.[0];\nconst group_id = split?.[1];\nconst chat_id = callback?.message?.chat?.id;\nconst telegram_user_id = callback?.from?.id;\nconst callback_id = callback?.id;\nconst message_id = callback?.message?.message_id;\n\nconst BOT_TOKEN = '8825541334:AAGtrNwHbAdTURG4p151qWRaJjlh5G8zEWI';\nconst SUPABASE_URL = 'https://kjmcmmxjxfmssahzefry.supabase.co';\nconst SUPABASE_KEY = 'TU_KEY_AQUI';\n\nconst tg = async (method, params) => {\n  return await helpers.httpRequest({\n    method: 'POST',\n    url: `https://api.telegram.org/bot${BOT_TOKEN}/${method}`,\n    headers: {'Content-Type': 'application/json'},\n    body: params,\n    json: true\n  });\n};\n\nconst sb = async (table, method='GET', body_data=null, query='') => {\n  return await helpers.httpRequest({\n    method,\n    url: `${SUPABASE_URL}/rest/v1/${table}${query}`,\n    headers: {\n      'Content-Type': 'application/json',\n      'apikey': SUPABASE_KEY,\n      'Authorization': `Bearer ${SUPABASE_KEY}`,\n      'Prefer': method === 'POST' ? 'return=representation' : ''\n    },\n    body: body_data || undefined,\n    json: true\n  });\n};\n\nif (action === 'vote_favorite') {\n  const rec = await sb('group_recommendations', 'GET', null, `?group_id=eq.${group_id}&order=created_at.desc&limit=1`);\n  const lugares = rec[0]?.top_lugares || [];\n  const inlineKeyboard = lugares.map(l => (\n  [{text: l.nombre, callback_data: `vote_place_${l.id}|${group_id}`}]\n));\n  await tg('sendMessage', {\n    chat_id,\n    text: '❤️ Selecciona tu lugar favorito:',\n    reply_markup: {inline_keyboard: inlineKeyboard}\n  });\n\n} else if (action === 'reroll') {\n  const rec = await sb('group_recommendations', 'GET', null, \n    `?group_id=eq.${group_id}&order=created_at.desc&limit=1`\n  );\n  const actuales = (rec[0]?.top_lugares || []).map(l => l.id);\n  const vistos = rec[0]?.lugares_vistos || [];\n  const exclude = [...new Set([...vistos, ...actuales])];\n\n  const nueva = await helpers.httpRequest({\n    method: 'POST',\n    url: 'https://cali-match.onrender.com/recomendar',\n    headers: {'Content-Type': 'application/json'},\n    body: {group_id, exclude_places: exclude},\n    json: true\n  });\n\n  // Acumular lugares vistos\n  const nuevos_ids = (nueva.top_lugares || []).map(l => l.id);\n  await sb('group_recommendations', 'PATCH',\n    {lugares_vistos: [...exclude, ...nuevos_ids]},\n    `?group_id=eq.${group_id}`\n  );\n\n  // Resetear votos para la nueva recomendación\n  await sb('group_votes', 'DELETE', null, `?group_id=eq.${group_id}`);\n\n  const insights = (nueva.insights || []).slice(0,3).map(i => `✨ ${i}`).join('\\n');\n  const lugares = (nueva.top_lugares || []).slice(0,4).map((l, idx) => \n    `${idx+1}. ${l.nombre} (${l.match_pct}% match)\\n   📍 ${l.barrio} | ${l.categoria}\\n   🧠 ${l.descripcion}`\n  ).join('\\n\\n');\n  const mensaje = `🔥 CALIMATCH - RESULTADO DEL PARCHE ${group_id}\\n\\n📊 Score: ${nueva.score}%\\n\\n────────────────────\\n\\n💡 Insights:\\n${insights}\\n\\n\\n🏆 Mejores lugares:\\n\\n${lugares}\\n\\n🍹 ¡Disfruten el parche!`;\n\n  const miembros = await sb('telegram_user_groups', 'GET', null, `?group_id=eq.${group_id}`);\n  const nombreSolicitante = callback?.from?.first_name || 'Alguien';\n\n  for (const miembro of miembros) {\n    await tg('sendMessage', {\n      chat_id: miembro.chat_id,\n      text: `🔄 ${nombreSolicitante} pidió una nueva recomendación:\\n\\n${mensaje}`,\n      reply_markup: {inline_keyboard: [[\n        {text: '❤️ Votar favorito', callback_data: `vote_favorite|${group_id}`},\n        {text: '🔄 Nueva recomendación', callback_data: `reroll|${group_id}`},\n        {text: '⭐ Calificar', callback_data: `review|${group_id}`}\n      ]]}\n    });\n  }\n} else if (action === 'review') {\n  await tg('sendMessage', {\n    chat_id,\n    text: '⭐ ¿Qué tan satisfecho quedaste?',\n    reply_markup: {inline_keyboard: [[\n      {text: '1', callback_data: `rating_q1_1|${group_id}`},\n      {text: '2', callback_data: `rating_q1_2|${group_id}`},\n      {text: '3', callback_data: `rating_q1_3|${group_id}`},\n      {text: '4', callback_data: `rating_q1_4|${group_id}`},\n      {text: '5', callback_data: `rating_q1_5|${group_id}`}\n    ]]}\n  });\n\n} else if (action?.startsWith('vote_place_')) {\n  const lugar_id = action.replace('vote_place_', '');\n  \n  // Verificar si ya votó\n  const yaVoto = await sb('group_votes', 'GET', null, \n    `?group_id=eq.${group_id}&telegram_user_id=eq.${telegram_user_id}&limit=1`\n  );\n  \n  if (yaVoto.length > 0) {\n    await tg('answerCallbackQuery', {\n      callback_query_id: callback_id,\n      show_alert: true,\n      text: '❌ Ya votaste anteriormente. Solo se permite un voto por persona.'\n    });\n  } else {\n    // Guardar voto\n    await sb('group_votes', 'POST', {group_id, telegram_user_id, lugar_id});\n    \n    // Obtener todos los votos del grupo\n    const votos = await sb('group_votes', 'GET', null, `?group_id=eq.${group_id}`);\n    \n    // Contar votos por lugar\n    const conteo = {};\n    for (const voto of votos) {\n      conteo[voto.lugar_id] = (conteo[voto.lugar_id] || 0) + 1;\n    }\n    \n    // Obtener nombres de lugares\n    const rec = await sb('group_recommendations', 'GET', null, `?group_id=eq.${group_id}&order=created_at.desc&limit=1`);\n    const lugares = rec[0]?.top_lugares || [];\n    \n    // Construir marcador\n    const marcador = lugares\n      .map(l => ({\n        nombre: l.nombre,\n        votos: conteo[String(l.id)] || 0\n      }))\n      .sort((a, b) => b.votos - a.votos)\n      .map((l, i) => `${i === 0 ? '🏆' : `${i + 1}.`} ${l.nombre} — ${l.votos} voto${l.votos !== 1 ? 's' : ''}`)\n      .join('\\n');\n    // Notificar a todos los miembros del grupo excepto al que votó\nconst miembros = await sb('telegram_user_groups', 'GET', null, `?group_id=eq.${group_id}`);\nconst nombreVotante = callback?.from?.first_name || 'Alguien';\nconst lugarVotado = lugares.find(l => String(l.id) === String(lugar_id))?.nombre || 'un lugar';\n\nfor (const miembro of miembros) {\n  if (String(miembro.chat_id) !== String(chat_id)) {\n    await tg('sendMessage', {\n      chat_id: miembro.chat_id,\n      text: `🗳️ ${nombreVotante} votó por ${lugarVotado}\\n\\n📊 Marcador actual:\\n${marcador}`\n    });\n  }\n}\n    await tg('answerCallbackQuery', {\n      callback_query_id: callback_id,\n      show_alert: true,\n      text: `✅ ¡Voto registrado!\\n\\n📊 Marcador actual:\\n${marcador}`\n    });\n  }\n\n} else if (action?.startsWith('rating_q1_')) {\n  const satisfaccion = parseInt(action.replace('rating_q1_', ''));\n  const rec = await sb('group_recommendations', 'GET', null, `?group_id=eq.${group_id}&order=created_at.desc&limit=1`);\n  const lugar_id = rec[0]?.top_lugares?.[0]?.id;\n  await sb('user_ratings_state', 'POST', {telegram_user_id, group_id, lugar_id, satisfaccion, step_actual: 'q2'});\n  await tg('editMessageText', {\n    chat_id, message_id,\n    text: '⭐ ¿Lo recomendarías?',\n    reply_markup: {inline_keyboard: [[\n      {text: '1', callback_data: `rating_q2_1|${group_id}`},\n      {text: '2', callback_data: `rating_q2_2|${group_id}`},\n      {text: '3', callback_data: `rating_q2_3|${group_id}`},\n      {text: '4', callback_data: `rating_q2_4|${group_id}`},\n      {text: '5', callback_data: `rating_q2_5|${group_id}`}\n    ]]}\n  });\n\n} else if (action?.startsWith('rating_q2_')) {\n  const recomendaria = parseInt(action.replace('rating_q2_', ''));\n  await sb('user_ratings_state', 'PATCH', {recomendaria, step_actual: 'q3'}, `?telegram_user_id=eq.${telegram_user_id}&group_id=eq.${group_id}`);\n  await tg('editMessageText', {\n    chat_id, message_id,\n    text: '⭐ ¿Coincidía con los gustos del grupo?',\n    reply_markup: {inline_keyboard: [[\n      {text: '1', callback_data: `rating_q3_1|${group_id}`},\n      {text: '2', callback_data: `rating_q3_2|${group_id}`},\n      {text: '3', callback_data: `rating_q3_3|${group_id}`},\n      {text: '4', callback_data: `rating_q3_4|${group_id}`},\n      {text: '5', callback_data: `rating_q3_5|${group_id}`}\n    ]]}\n  });\n\n} else if (action?.startsWith('rating_q3_')) {\n  const coincidencia = parseInt(action.replace('rating_q3_', ''));\n  const state = await sb('user_ratings_state', 'GET', null, `?telegram_user_id=eq.${telegram_user_id}&group_id=eq.${group_id}&step_actual=eq.q3&limit=1`);\n  await sb('place_ratings', 'POST', {\n    telegram_user_id, group_id,\n    lugar_id: state[0]?.lugar_id,\n    satisfaccion: state[0]?.satisfaccion,\n    recomendaria: state[0]?.recomendaria,\n    coincidencia\n  });\n  await tg('editMessageText', {chat_id, message_id, text: '✅ ¡Gracias por tu calificación!'});\n}\n\nreturn [{json: {ok: true, action, group_id}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        784
+      ],
+      "id": "f9a341c6-c570-4656-8448-b457f81ca190",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "401dd511-565f-4d7c-a045-a3f784e648f3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "794b830a2ba3c1688097b85f05d1f8eea8001a824c7f1d2982831e93fc060705"
+  },
+  "nodeGroups": [],
+  "id": "9uNb09W5Fa5PQuVD",
+  "tags": []
+}
