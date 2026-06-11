@@ -165,6 +165,15 @@ Proyecto desarrollado para la materia **Interacción Sociotecnológica** — Uni
 | Yeliani |
 | Majo |
 | Silvana |
+---
+## 📊 Presentación
+[Ver diapositivas](https://canva.link/95g8zevt4q85zu2)
+---
+
+## 🤖 Workflows n8n
+Los workflows de automatización están en la carpeta `/n8n`:
+- `workflow1-enviar-recomendacion.json` — Envía la recomendación por Telegram
+- `workflow2-procesar-callbacks.json` — Procesa las interacciones de los botones
 
 ---
 
